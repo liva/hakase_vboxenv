@@ -1,0 +1,105 @@
+diff --git a/Makefile b/Makefile
+index ccd9818..00ce43e 100644
+--- a/Makefile
++++ b/Makefile
+@@ -2,7 +2,7 @@
+ VERSION = 4
+ PATCHLEVEL = 14
+ SUBLEVEL = 34
+-EXTRAVERSION =
++EXTRAVERSION = hakase
+ NAME = Petit Gorille
+ 
+ # *DOCUMENTATION*
+diff --git a/arch/x86/include/asm/apic.h b/arch/x86/include/asm/apic.h
+index 5f01671..e886276 100644
+--- a/arch/x86/include/asm/apic.h
++++ b/arch/x86/include/asm/apic.h
+@@ -380,6 +380,8 @@ extern struct apic *__apicdrivers[], *__apicdrivers_end[];
+  */
+ #ifdef CONFIG_SMP
+ extern int wakeup_secondary_cpu_via_nmi(int apicid, unsigned long start_eip);
++extern int wakeup_secondary_cpu_via_init(int phys_apicid, unsigned long start_eip);
++extern void smpboot_setup_warm_reset_vector(unsigned long start_eip);
+ #endif
+ 
+ #ifdef CONFIG_X86_LOCAL_APIC
+diff --git a/arch/x86/include/asm/realmode.h b/arch/x86/include/asm/realmode.h
+index 63b3393..e74caf6 100644
+--- a/arch/x86/include/asm/realmode.h
++++ b/arch/x86/include/asm/realmode.h
+@@ -9,6 +9,8 @@
+ #define TH_FLAGS_SME_ACTIVE_BIT		0
+ #define TH_FLAGS_SME_ACTIVE		BIT(TH_FLAGS_SME_ACTIVE_BIT)
+ 
++#define FRIEND_LOADER_TRAMPOLINE_SIGNATURE 0x4a70726b
++
+ #ifndef __ASSEMBLY__
+ 
+ #include <linux/types.h>
+diff --git a/arch/x86/kernel/smpboot.c b/arch/x86/kernel/smpboot.c
+index 65a0ccd..68fc59c 100644
+--- a/arch/x86/kernel/smpboot.c
++++ b/arch/x86/kernel/smpboot.c
+@@ -121,7 +121,7 @@ int arch_update_cpu_topology(void)
+ 	return retval;
+ }
+ 
+-static inline void smpboot_setup_warm_reset_vector(unsigned long start_eip)
++void smpboot_setup_warm_reset_vector(unsigned long start_eip)
+ {
+ 	unsigned long flags;
+ 
+@@ -137,6 +137,7 @@ static inline void smpboot_setup_warm_reset_vector(unsigned long start_eip)
+ 							start_eip & 0xf;
+ 	pr_debug("3.\n");
+ }
++EXPORT_SYMBOL(smpboot_setup_warm_reset_vector);
+ 
+ static inline void smpboot_restore_warm_reset_vector(void)
+ {
+@@ -737,7 +738,7 @@ wakeup_secondary_cpu_via_nmi(int apicid, unsigned long start_eip)
+ 	return (send_status | accept_status);
+ }
+ 
+-static int
++int
+ wakeup_secondary_cpu_via_init(int phys_apicid, unsigned long start_eip)
+ {
+ 	unsigned long send_status = 0, accept_status = 0;
+@@ -850,6 +851,7 @@ wakeup_secondary_cpu_via_init(int phys_apicid, unsigned long start_eip)
+ 
+ 	return (send_status | accept_status);
+ }
++EXPORT_SYMBOL(wakeup_secondary_cpu_via_init);
+ 
+ /* reduce the number of lines printed when booting a large cpu count system */
+ static void announce_cpu(int cpu, int apicid)
+diff --git a/arch/x86/realmode/rm/stack.S b/arch/x86/realmode/rm/stack.S
+index 8d4cb64..ab5bef8 100644
+--- a/arch/x86/realmode/rm/stack.S
++++ b/arch/x86/realmode/rm/stack.S
+@@ -4,6 +4,8 @@
+  */
+ 
+ #include <linux/linkage.h>
++#include <asm/realmode.h>
++#include <asm/export.h>
+ 
+ 	.data
+ GLOBAL(HEAP)
+@@ -11,6 +13,14 @@ GLOBAL(HEAP)
+ GLOBAL(heap_end)
+ 	.long	rm_stack
+ 
++	.align 4096
++__friend_loader_buf_start:
++	/* for Friend-Loader */
++	.long  0
++	.long  FRIEND_LOADER_TRAMPOLINE_SIGNATURE
++	.space 4088 + 3 * 4096, 0
++__friend_loader_buf_end:
++
+ 	.bss
+ 	.balign	16
+ GLOBAL(rm_heap)
