@@ -12,18 +12,22 @@ swapon /swap
 apt update -qq
 apt install -y git
 apt-get build-dep -qq linux
+apt install -y build-essential bc kmod cpio flex cpio libncurses5-dev
 cp /vagrant/hakase.patch .
 wget https://cdn.kernel.org/pub/linux/kernel/v4.x/linux-4.14.34.tar.xz
+
 tar xf linux-4.14.34.tar.xz
 ln -s linux-4.14.34 linux
+
 pushd linux
 patch -p1 < ../hakase.patch
-yes "" | make oldconfig
-make
-make modules_install
-make headers_install
-make install
+make defconfig
+make bindeb-pkg
 popd
+
+swapoff /swap
+
+dpkg -i *hakase-1_amd64.deb
+
 sed -i -e "s/GRUB_CMDLINE_LINUX_DEFAULT=\"quiet\"/GRUB_CMDLINE_LINUX_DEFAULT=\"quiet memmap=0x80000000\$0x80000000\"/g" /etc/default/grub
 update-grub2
-swapoff /swap
