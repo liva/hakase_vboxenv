@@ -27,7 +27,3 @@ popd
 
 swapoff /swap
 
-dpkg -i *hakase-1_amd64.deb
-
-sed -i -e "s/GRUB_CMDLINE_LINUX_DEFAULT=\"quiet\"/GRUB_CMDLINE_LINUX_DEFAULT=\"quiet memmap=0x80000000\$0x80000000\"/g" /etc/default/grub
-update-grub2
