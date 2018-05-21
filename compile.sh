@@ -25,5 +25,7 @@ make defconfig
 make bindeb-pkg
 popd
 
+cp *hakase-1_amd64.deb /vagrant
+
 swapoff /swap
 
