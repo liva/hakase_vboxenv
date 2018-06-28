@@ -2,7 +2,7 @@
 
 cd /usr/src
 su -c "grep '^deb ' /etc/apt/sources.list | sed 's/^deb/deb-src/g' > /etc/apt/sources.list.d/deb-src.list"
-sed -i'~' -E "s@http://(..\.)?(archive|security)\.ubuntu\.com/ubuntu@http://linux.yz.yamagata-u.ac.jp/pub/linux/ubuntu-archive/@g" /etc/apt/sources.list
+sed -i'~' -E "s@http://(..\.)?(archive|security)\.ubuntu\.com/ubuntu@http://pf.is.s.u-tokyo.ac.jp/~awamoto/apt-mirror/@g" /etc/apt/sources.list
 
 dd if=/dev/zero of=/swap bs=1M count=4096
 chmod 600 /swap
@@ -22,6 +22,9 @@ ln -s linux-4.14.34 linux
 pushd linux
 patch -p1 < ../hakase.patch
 make defconfig
+wget https://raw.githubusercontent.com/nichoski/kergen/master/kergen/depgen
+yes | python3 ./depgen CONFIG_USB_XHCI_PCI
+yes "" | make oldconfig
 make bindeb-pkg
 popd
 

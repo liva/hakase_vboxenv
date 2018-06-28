@@ -8,9 +8,10 @@ fi
 if [ ${memall} -lt 7 ]; then
   sed -i -e 's/4096/2048/g' Vagrantfile
 fi
+vagrant plugin install vagrant-vbguest
 vagrant up
 vagrant ssh -c "sudo bash -x /vagrant/compile.sh"
 if [ ${memall} -lt 7 ]; then
   sed -i -e 's/2048/4096/g' Vagrantfile
 fi
-vagrant reload
+vagrant halt
